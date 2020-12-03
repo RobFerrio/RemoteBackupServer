@@ -3,7 +3,7 @@ project(RemoteBackupServer)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(RemoteBackupServer main.cpp Socket.cpp Socket.h ServerSocket.cpp ServerSocket.h)
+add_executable(RemoteBackupServer main.cpp BackupServer.cpp BackupServer.h Connection.cpp Connection.h)
 
 #Necessari per far funzionare i threads
 set(THREADS_PREFER_PTHREAD_FLAG ON)
