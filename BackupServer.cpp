@@ -3,7 +3,6 @@
 //
 
 #include "BackupServer.h"
-#include "boost/bind/bind.hpp"
 
 BackupServer::BackupServer(io_context& ioContext, uint16_t port): ioContext(ioContext),
                                                                   acceptor(ioContext, tcp::endpoint(tcp::v4(), port))

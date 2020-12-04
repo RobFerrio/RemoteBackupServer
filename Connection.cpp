@@ -2,8 +2,7 @@
 // Created by rob on 03/12/20.
 //
 
-#include <iostream>
-#include "BackupServer.h"
+#include "Connection.h"
 
 void Connection::handleConnection() {
     boost::asio::async_write(socket, boost::asio::buffer("Inserisci username: "), [self = shared_from_this()](boost::system::error_code error, std::size_t bytes_transferred){

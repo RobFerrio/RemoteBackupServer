@@ -1,4 +1,3 @@
-#include <iostream>
 #include "BackupServer.h"
 
 int main() {
@@ -12,7 +11,7 @@ int main() {
         for(int n = 0; n < std::thread::hardware_concurrency(); ++n){
             threads.emplace_back([&]{ ioContext.run(); });
         }
-        //se in futuro ci fosse un modo per stoppare il server si passerebbe da qui
+        //Il thread principale si blocca al primo join
         for(auto& thread : threads) {
             if (thread.joinable()) {
                 thread.join();
