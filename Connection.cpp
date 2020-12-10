@@ -52,8 +52,8 @@ void Connection::async_read(Handler handler) {
         if(!error){
             try {
                 //Deserializza
-                std::string archiveData(self->inboundData[0], self->inboundData.size());    //vector -> string
-                std::istringstream archiveStream(archiveData);                                 //string -> stream
+                std::string archiveData(self->inboundData.begin(), self->inboundData.end());    //vector -> string
+                std::istringstream archiveStream(archiveData);                                  //string -> stream
                 boost::archive::text_iarchive archive(archiveStream);                       //stream -> archive
                 archive >> self->bufferMessage;
             } catch (std::exception& e) {
