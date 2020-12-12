@@ -25,8 +25,9 @@ Message::Message(Message &&src) noexcept : type(ERROR_MSG), hash(nullptr) {
     swap(*this, src);
 }
 
-Message &Message::operator=(Message src) {
-    swap(*this, src);
+Message &Message::operator=(const Message &src) {
+    Message copy(src);
+    swap(*this, copy);
     return *this;
 }
 

@@ -50,7 +50,7 @@ public:
     Message(const Message& m);                      //Costruttore di copia
     Message(Message &&src) noexcept;                //Costruttore di movimento
     friend void swap(Message& src, Message& dst);
-    Message& operator=(Message m);                  //Overload operatore di assegnazione tramite copia
+    Message& operator=(const Message &src);                  //Overload operatore di assegnazione tramite copia
     Message& operator=(Message&& src) noexcept ;    //Overload operatore di assegnazione tramite movimento
     virtual ~Message();                             //Distruttore
 
