@@ -12,23 +12,33 @@
 #include <boost/serialization/vector.hpp>
 #include <iostream>
 
-#define ERROR_MSG  -1;
-#define AUTH_MSG    0;
-#define ENDINIT_MSG 1;
-#define PROBE_MSG   2;
-#define FILE_MSG    3;
+//Tipi messaggio
+#define ERROR_MSG  -1
+#define AUTH_REQ    0
+#define AUTH_RES    1
+#define AUTH_OK     2
+#define FILE_LIST   3
+#define FILE_START  4
+#define FILE_DATA   5
+#define FILE_END    6
+
+//Delimitatori
+#define UDEL "/USERNAME/:"
+#define PDEL "/PASSWORD/:"
+#define FDEL "/FILE/:"
+#define HDEL "/HASH/:"
 
 class Message {
     int type;
     std::vector<char> data{};
-    size_t size;
-    unsigned char hash[SHA256_DIGEST_LENGTH]{};
+    unsigned char *hash = nullptr;
+
+    void hashData();
 
     template<class Archive>
     void serialize(Archive& ar, const unsigned int version){
         ar & type;      //Se Archive è un output archive allora & è uguale a <<
         ar & data;      //Se Archive è un input  archive allora & è uguale a >>
-        ar & size;
         ar & hash;
     };     //Funzione di supporto per gli archive di boost
 
@@ -36,13 +46,20 @@ class Message {
 public:
     Message();
     explicit Message(int type);
-    Message(int type, std::vector<char> data, size_t size);
+    Message(int type, std::vector<char> data);
+    Message(const Message& m);                      //Costruttore di copia
+    Message(Message &&src) noexcept;                //Costruttore di movimento
+    friend void swap(Message& src, Message& dst);
+    Message& operator=(Message m);                  //Overload operatore di assegnazione tramite copia
+    Message& operator=(Message&& src) noexcept ;    //Overload operatore di assegnazione tramite movimento
+    virtual ~Message();                             //Distruttore
 
-    int getType() const;
-    std::vector<char> getData() const;
-    size_t getSize() const;
+    [[nodiscard]] int getType() const;
+    [[nodiscard]] std::vector<char> getData() const;
 
     bool checkHash() const;
+    std::optional<std::pair<std::string, std::string>> extractAuthData();
+    std::optional<std::unordered_map<std::string, unsigned char *>> extractFileList();
 };
 
 
