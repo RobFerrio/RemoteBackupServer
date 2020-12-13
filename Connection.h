@@ -8,6 +8,7 @@
 #include <boost/asio.hpp>
 #include <iostream>
 #include "Message.h"
+#include "Folder.h"
 
 #define HEADER_LENGTH 8
 
@@ -18,6 +19,7 @@ class Connection: public std::enable_shared_from_this<Connection>{
     io_context& ioContext;
     tcp::socket socket;
     std::string username;
+    Folder folder;
 
     std::string outboundHeader{};
     std::string outboundData{};
@@ -35,6 +37,11 @@ public:
     void async_read(Handler handler);   //Il risultato può essere solo di tipo Message (viene salvato in bufferMessage)
 
     void handleConnection();
+    void listenMessages();
+    void handleFileList();
+    void handleDiffs(std::unordered_map<std::string, int>& diffs);
+    void handleFileRecv();
+    void sendFile(std::string path);
 };
 
 #endif //REMOTEBACKUPSERVER_CONNECTION_H

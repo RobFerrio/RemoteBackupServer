@@ -71,19 +71,93 @@ void Connection::async_read(Handler handler) {
 }
 
 void Connection::handleConnection() {
-    bufferMessage = Message(0);
+    //Invia richiesta autenticazione
+    bufferMessage = Message(AUTH_REQ);
     async_write(bufferMessage, [self = shared_from_this()](boost::system::error_code error, std::size_t bytes_transferred){
         if(!error){
-            std::cout << "Write riuscita!" << std::endl;
             self->bufferMessage = Message();
+            //Leggi username/psw
             self->async_read([self](boost::system::error_code error, std::size_t bytes_transferred){
                 if(!error) {
-                    std::cout << "tipo: " << self->bufferMessage.getType() << " dimensione: " << self->bufferMessage.getSize() << std::endl;
-                    std::cout << "hash: " << self->bufferMessage.checkHash() << std::endl;
-                } else{
-                    std::cout << error.message() << std::endl;
+                    auto authData = self->bufferMessage.extractAuthData();
+                    if(authData.has_value()){
+                        //TODO: Da implementare check identità + unicità del login (ricordare anche un distruttore che rimette disponibile l'username)
+                        std::cout << authData.value().first << std::endl;
+                        self->username = authData->first;
+                        self->folder = Folder("../" + self->username);
+                        self->bufferMessage = Message(AUTH_OK);
+                        //Conferma autenticazione
+                        self->async_write(self->bufferMessage, [self](boost::system::error_code error, std::size_t bytes_transferred) {
+                            if (!error)
+                                self->listenMessages();
+                        });
+                    }
                 }
             });
         }
     });
 }
+
+void Connection::listenMessages() {
+    bufferMessage = Message();
+    async_read([self = shared_from_this()](boost::system::error_code error, std::size_t bytes_transferred){
+        if(!error){
+            switch (self->bufferMessage.getType()) {
+                case FILE_LIST:
+                    self->handleFileList();
+                    break;
+                case FILE_START:
+                    self->handleFileRecv();
+                    break;
+            }
+        }
+    });
+}
+
+void Connection::handleFileList() {
+    if(!bufferMessage.checkHash())
+        return;
+    auto clientFolder = bufferMessage.extractFileList();
+    if(!clientFolder.has_value())
+        return;
+
+    auto folderDiffs = folder.compare(clientFolder.value());
+    handleDiffs(folderDiffs);
+}
+
+void Connection::handleDiffs(std::unordered_map<std::string, int>& diffs) {
+    if(diffs.empty())
+        listenMessages();
+    else{
+        auto diff = diffs.begin();
+        diffs.erase(diffs.begin());
+        auto newDiffs = std::make_shared<std::unordered_map<std::string, int>>(std::move(diffs));
+
+        switch (diff->second) {
+            case SERVER_MISSING_FILE:
+                bufferMessage = Message(FILE_REQ,  std::vector<char>(diff->first.begin(), diff->first.end()));
+                async_write(bufferMessage, [self = shared_from_this(), newDiffs](boost::system::error_code error, std::size_t bytes_transferred){
+                    self->handleDiffs(*newDiffs);
+                });
+                break;
+            case CLIENT_MISSING_DIR:
+                bufferMessage = Message(DIR_SEND, std::vector<char>(diff->first.begin(), diff->first.end()));
+                async_write(bufferMessage, [self = shared_from_this(), newDiffs](boost::system::error_code error, std::size_t bytes_transferred){
+                    self->handleDiffs(*newDiffs);
+                });
+                break;
+            case CLIENT_MISSING_FILE:
+                break;
+        }
+    }
+}
+
+void Connection::handleFileRecv() {
+
+}
+
+void Connection::sendFile(std::string path) {
+
+}
+
+

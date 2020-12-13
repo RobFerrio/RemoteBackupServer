@@ -21,6 +21,8 @@
 #define FILE_START  4
 #define FILE_DATA   5
 #define FILE_END    6
+#define FILE_REQ    7
+#define DIR_SEND    8
 
 //Delimitatori
 #define UDEL "/USERNAME/:"
@@ -31,7 +33,7 @@
 class Message {
     int type;
     std::vector<char> data{};
-    unsigned char *hash = nullptr;
+    std::string hash;
 
     void hashData();
 
@@ -47,19 +49,13 @@ public:
     Message();
     explicit Message(int type);
     Message(int type, std::vector<char> data);
-    Message(const Message& m);                      //Costruttore di copia
-    Message(Message &&src) noexcept;                //Costruttore di movimento
-    friend void swap(Message& src, Message& dst);
-    Message& operator=(const Message &src);                  //Overload operatore di assegnazione tramite copia
-    Message& operator=(Message&& src) noexcept ;    //Overload operatore di assegnazione tramite movimento
-    virtual ~Message();                             //Distruttore
 
     [[nodiscard]] int getType() const;
     [[nodiscard]] std::vector<char> getData() const;
 
     bool checkHash() const;
     std::optional<std::pair<std::string, std::string>> extractAuthData();
-    std::optional<std::unordered_map<std::string, unsigned char *>> extractFileList();
+    std::optional<std::unordered_map<std::string, std::string>> extractFileList();
 };
 
 
