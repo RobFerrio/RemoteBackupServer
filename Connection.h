@@ -11,6 +11,7 @@
 #include "Folder.h"
 
 #define HEADER_LENGTH 8
+#define CHUNK_SIZE 1024
 
 using io_context = boost::asio::io_context;
 using tcp = boost::asio::ip::tcp;
@@ -39,9 +40,9 @@ public:
     void handleConnection();
     void listenMessages();
     void handleFileList();
-    void handleDiffs(std::unordered_map<std::string, int>& diffs);
-    void handleFileRecv();
-    void sendFile(std::string path);
+    void handleDiffs(std::shared_ptr<std::unordered_map<std::string, int>> diffs);
+    void handleFileRecv(std::string path);
+    void sendFile(std::shared_ptr<std::ifstream> ifs, std::shared_ptr<std::unordered_map<std::string, int>> diffs);
 };
 
 #endif //REMOTEBACKUPSERVER_CONNECTION_H

@@ -21,8 +21,7 @@
 #define FILE_START  4
 #define FILE_DATA   5
 #define FILE_END    6
-#define FILE_REQ    7
-#define DIR_SEND    8
+#define DIR_SEND    7
 
 //Delimitatori
 #define UDEL "/USERNAME/:"
@@ -49,6 +48,8 @@ public:
     Message();
     explicit Message(int type);
     Message(int type, std::vector<char> data);
+    Message(int type, std::string data);
+    explicit Message(const std::unordered_map<std::string, std::string>& paths);    //Costruttore per mappa <file/directory, hash>
 
     [[nodiscard]] int getType() const;
     [[nodiscard]] std::vector<char> getData() const;

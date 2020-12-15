@@ -27,7 +27,13 @@ std::string fileHash(const std::string& file){
     SHA256_Final(hash, &sha256);
     ifs.close();
 
-    return std::string(reinterpret_cast<char *>(hash), SHA256_DIGEST_LENGTH);
+    //Conversione da unsigned char a string
+    char hash_[2*SHA256_DIGEST_LENGTH+1];
+    hash_[2*SHA256_DIGEST_LENGTH] = 0;
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
+        sprintf(hash_+i*2, "%02x", hash[i]);
+
+    return std::string(hash_);
 }
 
 Folder::Folder(std::string path): folderPath(std::move(path)) {
@@ -41,23 +47,27 @@ Folder::Folder(std::string path): folderPath(std::move(path)) {
     }
 }
 
-std::unordered_map<std::string, int> Folder::compare(std::unordered_map<std::string, std::string> clientFolder) {
+std::unordered_map<std::string, std::string> Folder::getPaths() const {
+    return paths;
+}
+
+std::unordered_map<std::string, int> Folder::compare(const std::unordered_map<std::string, std::string>& clientFolder) {
     std::unordered_map<std::string, int> diffs;
-    //Check client -> server
-    for(std::pair<std::string, std::string> path : clientFolder){
-        if(!paths.contains(path.first)) {
-            if(path.second.empty()){                //Directory mancante
-                std::filesystem::create_directory(path.first);
-                paths[path.first] = path.second;
-            } else {                                //File mancante
-                diffs[path.first] = SERVER_MISSING_FILE;
-            }
-        }
-        else if(paths[path.first] != path.second){  //File diverso
-            diffs[path.first] = SERVER_MISSING_FILE;
-        }
-    }
-    //Check server -> client
+                            /*//Check client -> server
+                            for(std::pair<std::string, std::string> path : clientFolder){
+                                if(!paths.contains(path.first)) {
+                                    if(path.second.empty()){                //Directory mancante
+                                        std::filesystem::create_directory(path.first);
+                                        paths[path.first] = path.second;
+                                    } else {                                //File mancante
+                                        diffs[path.first] = SERVER_MISSING_FILE;
+                                    }
+                                }
+                                else if(paths[path.first] != path.second){  //File diverso
+                                    diffs[path.first] = SERVER_MISSING_FILE;
+                                }
+                            }*/
+    //Check file/directory mancanti al client
     for(std::pair<std::string, std::string> path : paths){
         if(!clientFolder.contains(path.first)){
             if(path.second.empty()){                //Directory mancante

@@ -14,6 +14,26 @@ Message::Message(int type, std::vector<char> data): type(type), data(std::move(d
     hashData();
 }
 
+Message::Message(int type, std::string data): type(type), data(std::vector<char>(data.begin(), data.end())) {
+    hashData();
+}
+
+//Costruttore per mappa <file/directory, hash>
+Message::Message(const std::unordered_map<std::string, std::string>& fileList) {
+    this->type = FILE_LIST;
+    std::string tmp;
+
+    for (const auto & file : fileList) {
+        tmp += file.first + FDEL;
+        if(!file.second.empty())  tmp+=(file.second);
+        tmp+=HDEL;
+    }
+
+    this->data = std::vector<char>(tmp.begin(), tmp.end());
+
+    hashData();
+}
+
 int Message::getType() const {
     return type;
 }
@@ -23,26 +43,30 @@ std::vector<char> Message::getData() const {
 }
 
 void Message::hashData() {
-    unsigned char dataHash[SHA256_DIGEST_LENGTH];
+    unsigned char tmp[SHA256_DIGEST_LENGTH];
+
+    //Calcolo hash
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
     SHA256_Update(&sha256, this->data.data(), this->data.size());
-    SHA256_Final(dataHash, &sha256);
+    SHA256_Final(tmp, &sha256);
 
-    hash = std::string(reinterpret_cast<char *>(dataHash), SHA256_DIGEST_LENGTH);
+    //Conversione da unsigned char a string (con un reinterpret cast esplode perchè alcuni caratteri non sono accettati da std::string)
+    char hash_[2*SHA256_DIGEST_LENGTH+1];
+    hash_[2*SHA256_DIGEST_LENGTH] = 0;
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
+        sprintf(hash_+i*2, "%02x", tmp[i]);
+
+    this->hash = std::string(hash_);
 }
 
 bool Message::checkHash() const{
-    if(this->data.empty()) return false;
+    if(this->data.empty() || this->hash.empty())
+        return false;
 
-    unsigned char hashRecomputed[SHA256_DIGEST_LENGTH];
+    Message tmp(ERROR_MSG, this->data);
 
-    SHA256_CTX sha256;
-    SHA256_Init(&sha256);
-    SHA256_Update(&sha256, this->data.data(), this->data.size());
-    SHA256_Final(hashRecomputed, &sha256);
-
-    return hash == std::string(reinterpret_cast<char *>(hashRecomputed), SHA256_DIGEST_LENGTH);
+    return this->hash == tmp.hash;
 }
 
 std::optional<std::pair<std::string, std::string>> Message::extractAuthData() {
@@ -57,17 +81,13 @@ std::optional<std::pair<std::string, std::string>> Message::extractAuthData() {
 
     //Estrazione USERNAME
     pos = codedAuthData.find(UDEL);
-    if(pos == std::string::npos)
-        return std::optional< std::pair<std::string, std::string> >();
     username = codedAuthData.substr(0, pos);
-    codedAuthData.erase(0, pos + sizeof(UDEL) + username.length());
+    codedAuthData.erase(0,pos + sizeof(UDEL) - 1);
 
     //Estrazione PASSWORD
     pos = codedAuthData.find(PDEL);
-    if(pos == std::string::npos)
-        return std::optional< std::pair<std::string, std::string> >();
     password = codedAuthData.substr(0,  pos);
-    codedAuthData.erase(0, pos + sizeof(PDEL) + password.length());
+    codedAuthData.erase(0, pos + sizeof(PDEL) - 1);
 
     return std::pair(username, password);
 }
@@ -85,13 +105,15 @@ std::optional<std::unordered_map<std::string, std::string>> Message::extractFile
     while ((pos = codedFileList.find(FDEL)) != std::string::npos) {
         //Estrazione FILE
         file = codedFileList.substr(0, pos);
-        codedFileList.erase(0, pos + sizeof(FDEL) + file.length());
+        codedFileList.erase(0, pos + sizeof(FDEL) - 1);
 
         //Estrazione HASH
         pos = codedFileList.find(HDEL);
         hash_ = codedFileList.substr(0,  pos);
-        decodedFileList[file] = hash_;
-        codedFileList.erase(0, pos + sizeof(HDEL) + hash_.length());
+        codedFileList.erase(0, pos + sizeof(HDEL) - 1);
+        if(!hash_.empty()) {
+            decodedFileList[file] = hash_;
+        } else decodedFileList[file] = "";
     }
 
     return decodedFileList;
