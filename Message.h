@@ -24,10 +24,10 @@
 #define DIR_SEND    7
 
 //Delimitatori
-#define UDEL "/USERNAME/:"
-#define PDEL "/PASSWORD/:"
-#define FDEL "/FILE/:"
-#define HDEL "/HASH/:"
+#define UDEL "/:USERNAME/"
+#define PDEL "/:PASSWORD/"
+#define FDEL "/:FILE/"
+#define HDEL "/:HASH/"
 
 class Message {
     int type;
