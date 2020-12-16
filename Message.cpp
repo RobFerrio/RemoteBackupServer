@@ -26,9 +26,8 @@ Message::Message(const std::unordered_map<std::string, std::string>& fileList) {
     for (const auto & file : fileList) {
         tmp += file.first + FDEL;
         if(!file.second.empty())  tmp+=(file.second);
-        tmp+=HDEL;
+        tmp += HDEL;
     }
-
     this->data = std::vector<char>(tmp.begin(), tmp.end());
 
     hashData();
@@ -61,8 +60,8 @@ void Message::hashData() {
 }
 
 bool Message::checkHash() const{
-    if(this->data.empty() || this->hash.empty())
-        return false;
+    /*if(this->data.empty() || this->hash.empty())
+        return false;*/
 
     Message tmp(ERROR_MSG, this->data);
 

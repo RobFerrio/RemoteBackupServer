@@ -111,6 +111,7 @@ void Connection::handleConnection() {
 }
 
 void Connection::listenMessages() {
+    debug_cout("listenMessages");
     bufferMessage = Message();
     async_read([self = shared_from_this()](boost::system::error_code error, std::size_t bytes_transferred){
         if(!error){
@@ -138,35 +139,39 @@ void Connection::listenMessages() {
 }
 
 void Connection::handleFileList() {
+    debug_cout("handleFilelist");
     if(!bufferMessage.checkHash())
         return;
+    debug_cout("dopo check hash");
     auto clientFolder = bufferMessage.extractFileList();
     if(!clientFolder.has_value())
         return;
-
+    debug_cout("dopo check value");
     auto folderDiffs = folder.compare(clientFolder.value());
     handleDiffs(std::make_shared<std::unordered_map<std::string, int>>(std::move(folderDiffs)));
 }
 
 void Connection::handleDiffs(std::shared_ptr<std::unordered_map<std::string, int>> diffs) {
+    debug_cout("in handle diffs");
     if(diffs->empty())
         listenMessages();
     else{
-        auto diff = diffs->begin();
-        diffs->erase(diffs->begin());
-
-        switch (diff->second) {
+        switch (diffs->begin()->second) {
             case CLIENT_MISSING_DIR:
-                bufferMessage = Message(DIR_SEND, diff->first);
+                debug_cout("in client missing dir");
+                bufferMessage = Message(DIR_SEND, diffs->begin()->first);
+                diffs->erase(diffs->begin());
                 async_write(bufferMessage,[self = shared_from_this(), diffs](boost::system::error_code error, std::size_t bytes_transferred){
                     if(!error)
                         self->handleDiffs(diffs);
                 });
                 break;
             case CLIENT_MISSING_FILE:
-                std::ifstream ifs(diff->first, std::ios::binary);
+                debug_cout("in client missing file");
+                std::ifstream ifs(diffs->begin()->first, std::ios::binary);
                 if (ifs.is_open()){
-                    bufferMessage = Message(FILE_START, diff->first);
+                    bufferMessage = Message(FILE_START, diffs->begin()->first);
+                    diffs->erase(diffs->begin());
                     async_write(bufferMessage,[self = shared_from_this(), diffs, openIfs = std::make_shared<std::ifstream>(std::move(ifs))](boost::system::error_code error, std::size_t bytes_transferred){
                         if(!error)
                             self->sendFile(openIfs, diffs);
