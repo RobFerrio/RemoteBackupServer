@@ -186,6 +186,7 @@ void Connection::handleFileRecv(std::string path) {
     async_read([self = shared_from_this(), pathPtr = std::make_shared<std::string>(std::move(path))](boost::system::error_code error, std::size_t bytes_transferred){
         try {
             if (!error) {
+                debug_cout("handleFileRecv");
                 if (self->bufferMessage.getType() == FILE_END) {
                     self->listenMessages();
                 } else if (self->bufferMessage.getType() != FILE_DATA || self->bufferMessage.checkHash() != 1) {
