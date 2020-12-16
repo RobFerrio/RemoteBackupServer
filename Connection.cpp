@@ -81,10 +81,12 @@ void Connection::handleConnection() {
             //Leggi username/psw
             self->async_read([self](boost::system::error_code error, std::size_t bytes_transferred){
                 if(!error) {
+                    try{
                     auto authData = self->bufferMessage.extractAuthData();
                     if(authData.has_value()){
                         //TODO: Da implementare check identità + unicità del login (ricordare anche un distruttore che rimette disponibile l'username)file req
-                        std::cout << authData.value().first << std::endl;
+                            debug_cout(authData.value().first);
+                            debug_cout(authData.value().second);
                         self->username = authData->first;
                         self->folder = Folder("../" + self->username);
                         self->bufferMessage = Message(self->folder.getPaths());
@@ -98,6 +100,9 @@ void Connection::handleConnection() {
                                 });
                             }
                         });
+                    }
+                    }catch(std::exception& e){
+                        safe_cout(e.what());
                     }
                 }
             });
@@ -117,9 +122,14 @@ void Connection::listenMessages() {
                     break;
                 case DIR_SEND:
                     if(self->bufferMessage.checkHash()){
-                        std::string path(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end());
-                        std::filesystem::create_directory(path);
-                        self->listenMessages();
+                        try {
+                            std::string path(self->bufferMessage.getData().begin(),
+                                             self->bufferMessage.getData().end());
+                            std::filesystem::create_directory(path);
+                            self->listenMessages();
+                        } catch (std::exception& e) {
+                            safe_cout(e.what());
+                        }
                     }
                     break;
             }
@@ -169,41 +179,47 @@ void Connection::handleDiffs(std::shared_ptr<std::unordered_map<std::string, int
 
 void Connection::handleFileRecv(std::string path) {
     async_read([self = shared_from_this(), pathPtr = std::make_shared<std::string>(std::move(path))](boost::system::error_code error, std::size_t bytes_transferred){
-        if(!error) {
-            if (self->bufferMessage.getType() == FILE_END) {
-                self->listenMessages();
-            } else if (self->bufferMessage.getType() != FILE_DATA || !self->bufferMessage.checkHash()) {
-                std::remove(pathPtr->data());
-            } else{
-                std::ofstream ofs(pathPtr->data(), std::ios::binary | std::ios_base::app);
-                if(ofs.is_open()){
-                    ofs << self->bufferMessage.getData().data();
-                    self->handleFileRecv(*pathPtr);
+        try {
+            if (!error) {
+                if (self->bufferMessage.getType() == FILE_END) {
+                    self->listenMessages();
+                } else if (self->bufferMessage.getType() != FILE_DATA || !self->bufferMessage.checkHash()) {
+                    std::remove(pathPtr->data());
+                } else {
+                    std::ofstream ofs(pathPtr->data(), std::ios::binary | std::ios_base::app);
+                    if (ofs.is_open()) {
+                        ofs << self->bufferMessage.getData().data();
+                        self->handleFileRecv(*pathPtr);
+                    }
                 }
             }
+        } catch (std::exception& e) {
+            safe_cout(e.what());
         }
     });
 }
 
 void Connection::sendFile(std::shared_ptr<std::ifstream> ifs, std::shared_ptr<std::unordered_map<std::string, int>> diffs) {
-    if(!ifs->eof()){
-        std::vector<char> buffer(CHUNK_SIZE);
-        ifs->read(buffer.data(), buffer.size());
-        size_t size = ifs->gcount();
-        if(size < CHUNK_SIZE)
-            buffer.resize(size);
-        bufferMessage = Message(FILE_DATA, buffer);
-        async_write(bufferMessage, [self = shared_from_this(), diffs, ifs](boost::system::error_code error, std::size_t bytes_transferred){
-            if(!error)
-                self->sendFile(ifs, diffs);
-        });
-    }else {
-        bufferMessage = Message(FILE_END);
-        async_write(bufferMessage, [self = shared_from_this(), diffs](boost::system::error_code error, std::size_t bytes_transferred){
-            if(!error)
-                self->handleDiffs(diffs);
-        });
+    try {
+        if (!ifs->eof()) {
+            std::vector<char> buffer(CHUNK_SIZE);
+            ifs->read(buffer.data(), buffer.size());
+            size_t size = ifs->gcount();
+            if (size < CHUNK_SIZE)
+                buffer.resize(size);
+            bufferMessage = Message(FILE_DATA, buffer);
+            async_write(bufferMessage, [self = shared_from_this(), diffs, ifs](boost::system::error_code error, std::size_t bytes_transferred) {
+                if (!error)
+                    self->sendFile(ifs, diffs);
+            });
+        } else {
+            bufferMessage = Message(FILE_END);
+            async_write(bufferMessage, [self = shared_from_this(), diffs](boost::system::error_code error, std::size_t bytes_transferred) {
+                if (!error)
+                    self->handleDiffs(diffs);
+            });
+        }
+    } catch (std::exception& e) {
+        safe_cout(e.what());
     }
 }
-
-

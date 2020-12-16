@@ -29,7 +29,8 @@ class Connection: public std::enable_shared_from_this<Connection>{
 
     Message bufferMessage;
 public:
-    Connection(io_context& ioContext, tcp::socket&& socket): ioContext(ioContext), socket(std::move(socket)){};
+    Connection(io_context& ioContext, tcp::socket&& socket): ioContext(ioContext), socket(std::move(socket)){ debug_cout("Connessione creata"); };
+    ~Connection(){ debug_cout("Connessione distrutta"); };
 
     template <typename T, typename Handler>
     void async_write(const T& t, Handler handler);

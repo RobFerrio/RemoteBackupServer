@@ -11,6 +11,7 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
 #include <iostream>
+#include "SafeCout.h"
 
 //Tipi messaggio
 #define ERROR_MSG  -1
@@ -54,7 +55,7 @@ public:
     [[nodiscard]] int getType() const;
     [[nodiscard]] std::vector<char> getData() const;
 
-    bool checkHash() const;
+    [[nodiscard]] bool checkHash() const;
     std::optional<std::pair<std::string, std::string>> extractAuthData();
     std::optional<std::unordered_map<std::string, std::string>> extractFileList();
 };
