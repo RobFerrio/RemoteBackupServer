@@ -117,12 +117,12 @@ void Connection::listenMessages() {
         if(!error){
             switch (self->bufferMessage.getType()) {
                 case FILE_START:
-                    if(self->bufferMessage.checkHash()){
+                    if(self->bufferMessage.checkHash() == 1){
                         self->handleFileRecv(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
                     }
                     break;
                 case DIR_SEND:
-                    if(self->bufferMessage.checkHash()){
+                    if(self->bufferMessage.checkHash() == 1){
                         try {
                             std::string path(self->bufferMessage.getData().begin(),
                                              self->bufferMessage.getData().end());
@@ -140,7 +140,7 @@ void Connection::listenMessages() {
 
 void Connection::handleFileList() {
     debug_cout("handleFilelist");
-    if(!bufferMessage.checkHash())
+    if(bufferMessage.checkHash() == 0)
         return;
     debug_cout("dopo check hash");
     auto clientFolder = bufferMessage.extractFileList();
@@ -188,7 +188,7 @@ void Connection::handleFileRecv(std::string path) {
             if (!error) {
                 if (self->bufferMessage.getType() == FILE_END) {
                     self->listenMessages();
-                } else if (self->bufferMessage.getType() != FILE_DATA || !self->bufferMessage.checkHash()) {
+                } else if (self->bufferMessage.getType() != FILE_DATA || self->bufferMessage.checkHash() != 1) {
                     std::remove(pathPtr->data());
                 } else {
                     std::ofstream ofs(pathPtr->data(), std::ios::binary | std::ios_base::app);

@@ -59,13 +59,15 @@ void Message::hashData() {
     this->hash = std::string(hash_);
 }
 
-bool Message::checkHash() const{
-    /*if(this->data.empty() || this->hash.empty())
-        return false;*/
+int Message::checkHash() const{
+    if(this->data.empty() || this->hash.empty())
+        return -1;
 
     Message tmp(ERROR_MSG, this->data);
+    if(this->hash == tmp.hash)
+        return 1;
 
-    return this->hash == tmp.hash;
+    return 0;
 }
 
 std::optional<std::pair<std::string, std::string>> Message::extractAuthData() {

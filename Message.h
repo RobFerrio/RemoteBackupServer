@@ -14,15 +14,17 @@
 #include "SafeCout.h"
 
 //Tipi messaggio
-#define ERROR_MSG  -1
+#define ERROR_MSG   -100
+#define FILE_ERR   -2
+#define AUTH_ERR   -1
 #define AUTH_REQ    0
 #define AUTH_RES    1
 #define AUTH_OK     2
 #define FILE_LIST   3
-#define FILE_START  4
-#define FILE_DATA   5
-#define FILE_END    6
-#define DIR_SEND    7
+#define DIR_SEND    4
+#define FILE_START  5
+#define FILE_DATA   6
+#define FILE_END    7
 
 //Delimitatori
 #define UDEL "/:USERNAME/"
@@ -55,7 +57,7 @@ public:
     [[nodiscard]] int getType() const;
     [[nodiscard]] std::vector<char> getData() const;
 
-    [[nodiscard]] bool checkHash() const;
+    [[nodiscard]] int checkHash() const;
     std::optional<std::pair<std::string, std::string>> extractAuthData();
     std::optional<std::unordered_map<std::string, std::string>> extractFileList();
 };
