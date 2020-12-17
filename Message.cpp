@@ -37,7 +37,7 @@ int Message::getType() const {
     return type;
 }
 
-std::vector<char> Message::getData() const {
+std::vector<char>& Message::getData() {
     return data;
 }
 

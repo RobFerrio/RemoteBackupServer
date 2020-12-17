@@ -55,7 +55,7 @@ public:
     explicit Message(const std::unordered_map<std::string, std::string>& paths);    //Costruttore per mappa <file/directory, hash>
 
     [[nodiscard]] int getType() const;
-    [[nodiscard]] std::vector<char> getData() const;
+    [[nodiscard]] std::vector<char>& getData();
 
     [[nodiscard]] int checkHash() const;
     std::optional<std::pair<std::string, std::string>> extractAuthData();

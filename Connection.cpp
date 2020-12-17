@@ -120,6 +120,7 @@ void Connection::listenMessages() {
                     case FILE_START:
                         if (self->bufferMessage.checkHash() == 1) {
                             debug_cout("prima di handleFileRecv");
+                            debug_cout(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
                             self->handleFileRecv(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
                         }
                         break;
@@ -142,20 +143,18 @@ void Connection::listenMessages() {
 }
 
 void Connection::handleFileList() {
-    debug_cout("handleFilelist");
     if(bufferMessage.checkHash() == 0)
         return;
-    debug_cout("dopo check hash");
+
     auto clientFolder = bufferMessage.extractFileList();
     if(!clientFolder.has_value())
         return;
-    debug_cout("dopo check value");
+
     auto folderDiffs = folder.compare(clientFolder.value());
     handleDiffs(std::make_shared<std::unordered_map<std::string, int>>(std::move(folderDiffs)));
 }
 
 void Connection::handleDiffs(std::shared_ptr<std::unordered_map<std::string, int>> diffs) {
-    debug_cout("in handle diffs");
     if(diffs->empty())
         listenMessages();
     else{
@@ -186,18 +185,22 @@ void Connection::handleDiffs(std::shared_ptr<std::unordered_map<std::string, int
 }
 
 void Connection::handleFileRecv(std::string path) {
+    bufferMessage = Message();
     async_read([self = shared_from_this(), pathPtr = std::make_shared<std::string>(std::move(path))](boost::system::error_code error, std::size_t bytes_transferred){
         try {
             if (!error) {
                 debug_cout("handleFileRecv");
                 if (self->bufferMessage.getType() == FILE_END) {
+                    debug_cout("file_end");
                     self->listenMessages();
                 } else if (self->bufferMessage.getType() != FILE_DATA || self->bufferMessage.checkHash() != 1) {
+                    debug_cout("errore file");
                     std::remove(pathPtr->data());
                 } else {
+                    debug_cout("salvataggio file chunk");
                     std::ofstream ofs(pathPtr->data(), std::ios::binary | std::ios_base::app);
                     if (ofs.is_open()) {
-                        ofs << self->bufferMessage.getData().data();
+                        ofs.write(self->bufferMessage.getData().data(), self->bufferMessage.getData().size());
                         self->handleFileRecv(*pathPtr);
                     }
                 }
@@ -210,8 +213,8 @@ void Connection::handleFileRecv(std::string path) {
 
 void Connection::sendFile(std::shared_ptr<std::ifstream> ifs, std::shared_ptr<std::unordered_map<std::string, int>> diffs) {
     try {
-        debug_cout("in sendFile");
         if (!ifs->eof()) {
+            debug_cout("sendFile: invio chunk");
             std::vector<char> buffer(CHUNK_SIZE);
             ifs->read(buffer.data(), buffer.size());
             size_t size = ifs->gcount();
@@ -223,6 +226,7 @@ void Connection::sendFile(std::shared_ptr<std::ifstream> ifs, std::shared_ptr<st
                     self->sendFile(ifs, diffs);
             });
         } else {
+            debug_cout("sendFile: fine file");
             bufferMessage = Message(FILE_END);
             async_write(bufferMessage, [self = shared_from_this(), diffs](boost::system::error_code error, std::size_t bytes_transferred) {
                 if (!error)
