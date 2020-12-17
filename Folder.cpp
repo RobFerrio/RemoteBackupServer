@@ -15,7 +15,7 @@ std::string fileHash(const std::string& file){
     unsigned char hash[SHA256_DIGEST_LENGTH];
     SHA256_CTX sha256;
     std::ifstream ifs;
-    std::vector<char> buffer;
+    std::vector<char> buffer(CHUNK_SIZE);
 
     ifs.open(file, std::ios::binary);
     while(!ifs.eof()) {
@@ -53,20 +53,6 @@ std::unordered_map<std::string, std::string> Folder::getPaths() const {
 
 std::unordered_map<std::string, int> Folder::compare(const std::unordered_map<std::string, std::string>& clientFolder) {
     std::unordered_map<std::string, int> diffs;
-                            /*//Check client -> server
-                            for(std::pair<std::string, std::string> path : clientFolder){
-                                if(!paths.contains(path.first)) {
-                                    if(path.second.empty()){                //Directory mancante
-                                        std::filesystem::create_directory(path.first);
-                                        paths[path.first] = path.second;
-                                    } else {                                //File mancante
-                                        diffs[path.first] = SERVER_MISSING_FILE;
-                                    }
-                                }
-                                else if(paths[path.first] != path.second){  //File diverso
-                                    diffs[path.first] = SERVER_MISSING_FILE;
-                                }
-                            }*/
     //Check file/directory mancanti al client
     for(std::pair<std::string, std::string> path : paths){
         if(!clientFolder.contains(path.first)){

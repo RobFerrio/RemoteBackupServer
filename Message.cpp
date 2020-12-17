@@ -42,6 +42,9 @@ std::vector<char> Message::getData() const {
 }
 
 void Message::hashData() {
+    if(this->data.empty())
+        return;
+
     unsigned char tmp[SHA256_DIGEST_LENGTH];
 
     //Calcolo hash

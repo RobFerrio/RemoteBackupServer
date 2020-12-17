@@ -114,25 +114,28 @@ void Connection::listenMessages() {
     debug_cout("listenMessages");
     bufferMessage = Message();
     async_read([self = shared_from_this()](boost::system::error_code error, std::size_t bytes_transferred){
-        if(!error){
-            switch (self->bufferMessage.getType()) {
-                case FILE_START:
-                    if(self->bufferMessage.checkHash() == 1){
-                        self->handleFileRecv(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
-                    }
-                    break;
-                case DIR_SEND:
-                    if(self->bufferMessage.checkHash() == 1){
-                        try {
-                            std::string path(self->bufferMessage.getData().begin(),
-                                             self->bufferMessage.getData().end());
-                            std::filesystem::create_directory(path);
-                            self->listenMessages();
-                        } catch (std::exception& e) {
-                            safe_cout(e.what());
+        if(!error) {
+            try {
+                switch (self->bufferMessage.getType()) {
+                    case FILE_START:
+                        if (self->bufferMessage.checkHash() == 1) {
+                            debug_cout("prima di handleFileRecv");
+                            self->handleFileRecv(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
                         }
-                    }
-                    break;
+                        break;
+                    case DIR_SEND:
+                        if (self->bufferMessage.checkHash() == 1) {
+                            try {
+                                std::filesystem::create_directory(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
+                                self->listenMessages();
+                            } catch (std::exception &e) {
+                                safe_cout(e.what());
+                            }
+                        }
+                        break;
+                }
+            }catch(std::exception& e){
+                safe_cout(e.what());
             }
         }
     });
@@ -207,6 +210,7 @@ void Connection::handleFileRecv(std::string path) {
 
 void Connection::sendFile(std::shared_ptr<std::ifstream> ifs, std::shared_ptr<std::unordered_map<std::string, int>> diffs) {
     try {
+        debug_cout("in sendFile");
         if (!ifs->eof()) {
             std::vector<char> buffer(CHUNK_SIZE);
             ifs->read(buffer.data(), buffer.size());
