@@ -17,6 +17,9 @@ using io_context = boost::asio::io_context;
 using tcp = boost::asio::ip::tcp;
 
 class Connection: public std::enable_shared_from_this<Connection>{
+    static std::mutex usersMutex;
+    static std::unordered_map<std::string, std::pair<std::string, bool>> users;
+
     io_context& ioContext;
     tcp::socket socket;
     std::string username;
@@ -29,8 +32,16 @@ class Connection: public std::enable_shared_from_this<Connection>{
 
     Message bufferMessage;
 public:
-    Connection(io_context& ioContext, tcp::socket&& socket): ioContext(ioContext), socket(std::move(socket)){ debug_cout("Connessione creata"); };
-    ~Connection(){ debug_cout("Connessione distrutta"); };
+    Connection(io_context& ioContext, tcp::socket&& socket): ioContext(ioContext), socket(std::move(socket)){
+        debug_cout("Connessione creata");
+    };
+    ~Connection(){
+        if(!username.empty()) {
+            std::lock_guard<std::mutex> lg(usersMutex);
+            users[username].second = false;
+        }
+        debug_cout("Connessione distrutta");
+    };
 
     template <typename T, typename Handler>
     void async_write(const T& t, Handler handler);
@@ -39,6 +50,7 @@ public:
     void async_read(Handler handler);   //Il risultato può essere solo di tipo Message (viene salvato in bufferMessage)
 
     void handleConnection();
+    bool login(std::optional<std::pair<std::string, std::string>>& authData);
     void listenMessages();
     void handleFileList();
     void handleDiffs(std::shared_ptr<std::map<std::string, int>> diffs);

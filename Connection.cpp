@@ -6,6 +6,17 @@
 #include <filesystem>
 #include "Connection.h"
 
+std::mutex Connection::usersMutex;
+std::unordered_map<std::string, std::pair<std::string, bool>> Connection::users = {
+        {"gold"     ,   {"experience"   ,false}},
+        {"sticky"   ,   {"fingers"      ,false}},
+        {"moody"    ,   {"blues"        ,false}},
+        {"killer"   ,   {"queen"        ,false}},
+        {"white"    ,   {"album"        ,false}},
+        {"purple"   ,   {"haze"         ,false}},
+        {"green"    ,   {"day"          ,false}}
+};
+
 template<typename T, typename Handler>
 void Connection::async_write(const T& t, Handler handler) {
     //Serializza i dati
@@ -82,25 +93,21 @@ void Connection::handleConnection() {
             self->async_read([self](boost::system::error_code error, std::size_t bytes_transferred){
                 if(!error) {
                     try{
-                    auto authData = self->bufferMessage.extractAuthData();
-                    if(authData.has_value()){
-                        //TODO: Da implementare check identità + unicità del login (ricordare anche un distruttore che rimette disponibile l'username)file req
-                            debug_cout(authData.value().first);
-                            debug_cout(authData.value().second);
-                        self->username = authData->first;
-                        self->folder = Folder("../" + self->username);
-                        self->bufferMessage = Message(self->folder.getPaths());
-                        //Conferma autenticazione + invia immagine folder
-                        self->async_write(self->bufferMessage, [self](boost::system::error_code error, std::size_t bytes_transferred) {
-                            if (!error) {
-                                self->bufferMessage = Message();
-                                //Leggi immagine folder del client
-                                self->async_read([self](boost::system::error_code error, std::size_t bytes_transferred){
-                                    self->handleFileList();
-                                });
-                            }
-                        });
-                    }
+                        auto authData = self->bufferMessage.extractAuthData();
+                        if(self->login(authData)){
+                            self->folder = Folder("../" + self->username);
+                            self->bufferMessage = Message(self->folder.getPaths());
+                            //Conferma autenticazione + invia immagine folder
+                            self->async_write(self->bufferMessage, [self](boost::system::error_code error, std::size_t bytes_transferred) {
+                                if (!error) {
+                                    self->bufferMessage = Message();
+                                    //Leggi immagine folder del client
+                                    self->async_read([self](boost::system::error_code error, std::size_t bytes_transferred){
+                                        self->handleFileList();
+                                    });
+                                }
+                            });
+                        }
                     }catch(std::exception& e){
                         safe_cout(e.what());
                     }
@@ -108,6 +115,21 @@ void Connection::handleConnection() {
             });
         }
     });
+}
+
+bool Connection::login(std::optional<std::pair<std::string, std::string>>& authData) {
+    if(!authData.has_value())
+        return false;
+
+    std::lock_guard<std::mutex> lg(usersMutex);
+    if(!users.contains(authData->first))
+        return false;
+    if(users[authData->first].second || users[authData->first].first != authData->second)
+        return false;
+
+    username = authData->first;
+    users[username].second = true;
+    return true;
 }
 
 void Connection::listenMessages() {
@@ -164,6 +186,7 @@ void Connection::handleDiffs(std::shared_ptr<std::map<std::string, int>> diffs) 
         switch (diffs->begin()->second) {
             case CLIENT_MISSING_DIR:
                 debug_cout("in client missing dir");
+                debug_cout(diffs->begin()->first);
                 bufferMessage = Message(DIR_SEND, diffs->begin()->first);
                 diffs->erase(diffs->begin());
                 async_write(bufferMessage,[self = shared_from_this(), diffs](boost::system::error_code error, std::size_t bytes_transferred){
@@ -173,9 +196,9 @@ void Connection::handleDiffs(std::shared_ptr<std::map<std::string, int>> diffs) 
                 break;
             case CLIENT_MISSING_FILE:
                 debug_cout("in client missing file");
+                debug_cout(diffs->begin()->first);
                 std::ifstream ifs(diffs->begin()->first, std::ios::binary);
                 if (ifs.is_open()){
-                    debug_cout(diffs->begin()->first);
                     bufferMessage = Message(FILE_START, diffs->begin()->first);
                     diffs->erase(diffs->begin());
                     async_write(bufferMessage,[self = shared_from_this(), diffs, openIfs = std::make_shared<std::ifstream>(std::move(ifs))](boost::system::error_code error, std::size_t bytes_transferred){
