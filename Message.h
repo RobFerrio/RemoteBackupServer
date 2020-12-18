@@ -11,6 +11,7 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
 #include <iostream>
+#include <map>
 #include "SafeCout.h"
 
 //Tipi messaggio
@@ -52,14 +53,14 @@ public:
     explicit Message(int type);
     Message(int type, std::vector<char> data);
     Message(int type, std::string data);
-    explicit Message(const std::unordered_map<std::string, std::string>& paths);    //Costruttore per mappa <file/directory, hash>
+    explicit Message(const std::map<std::string, std::string>& paths);    //Costruttore per mappa <file/directory, hash>
 
     [[nodiscard]] int getType() const;
     [[nodiscard]] std::vector<char>& getData();
 
     [[nodiscard]] int checkHash() const;
     std::optional<std::pair<std::string, std::string>> extractAuthData();
-    std::optional<std::unordered_map<std::string, std::string>> extractFileList();
+    std::optional<std::map<std::string, std::string>> extractFileList();
 };
 
 

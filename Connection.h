@@ -41,9 +41,9 @@ public:
     void handleConnection();
     void listenMessages();
     void handleFileList();
-    void handleDiffs(std::shared_ptr<std::unordered_map<std::string, int>> diffs);
+    void handleDiffs(std::shared_ptr<std::map<std::string, int>> diffs);
     void handleFileRecv(std::string path);
-    void sendFile(std::shared_ptr<std::ifstream> ifs, std::shared_ptr<std::unordered_map<std::string, int>> diffs);
+    void sendFile(std::shared_ptr<std::ifstream> ifs, std::shared_ptr<std::map<std::string, int>> diffs);
 };
 
 #endif //REMOTEBACKUPSERVER_CONNECTION_H

@@ -119,9 +119,10 @@ void Connection::listenMessages() {
                 switch (self->bufferMessage.getType()) {
                     case FILE_START:
                         if (self->bufferMessage.checkHash() == 1) {
-                            debug_cout("prima di handleFileRecv");
-                            debug_cout(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
-                            self->handleFileRecv(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
+                            std::string path(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end());
+                            debug_cout(path);
+                            std::ofstream ofs(path, std::ios::binary | std::ios_base::app);     //Crea il file prima di cominciare
+                            self->handleFileRecv(std::move(path));
                         }
                         break;
                     case DIR_SEND:
@@ -151,10 +152,10 @@ void Connection::handleFileList() {
         return;
 
     auto folderDiffs = folder.compare(clientFolder.value());
-    handleDiffs(std::make_shared<std::unordered_map<std::string, int>>(std::move(folderDiffs)));
+    handleDiffs(std::make_shared<std::map<std::string, int>>(std::move(folderDiffs)));
 }
 
-void Connection::handleDiffs(std::shared_ptr<std::unordered_map<std::string, int>> diffs) {
+void Connection::handleDiffs(std::shared_ptr<std::map<std::string, int>> diffs) {
     if(diffs->empty())
         listenMessages();
     else{
@@ -172,6 +173,7 @@ void Connection::handleDiffs(std::shared_ptr<std::unordered_map<std::string, int
                 debug_cout("in client missing file");
                 std::ifstream ifs(diffs->begin()->first, std::ios::binary);
                 if (ifs.is_open()){
+                    debug_cout(diffs->begin()->first);
                     bufferMessage = Message(FILE_START, diffs->begin()->first);
                     diffs->erase(diffs->begin());
                     async_write(bufferMessage,[self = shared_from_this(), diffs, openIfs = std::make_shared<std::ifstream>(std::move(ifs))](boost::system::error_code error, std::size_t bytes_transferred){
@@ -189,15 +191,14 @@ void Connection::handleFileRecv(std::string path) {
     async_read([self = shared_from_this(), pathPtr = std::make_shared<std::string>(std::move(path))](boost::system::error_code error, std::size_t bytes_transferred){
         try {
             if (!error) {
-                debug_cout("handleFileRecv");
                 if (self->bufferMessage.getType() == FILE_END) {
-                    debug_cout("file_end");
+                    debug_cout(">>>fine ricezione file<<<");
                     self->listenMessages();
                 } else if (self->bufferMessage.getType() != FILE_DATA || self->bufferMessage.checkHash() != 1) {
-                    debug_cout("errore file");
+                    debug_cout(">>>errore ricezione file<<<");
                     std::remove(pathPtr->data());
                 } else {
-                    debug_cout("salvataggio file chunk");
+                    debug_cout(">ricezione file chunk");
                     std::ofstream ofs(pathPtr->data(), std::ios::binary | std::ios_base::app);
                     if (ofs.is_open()) {
                         ofs.write(self->bufferMessage.getData().data(), self->bufferMessage.getData().size());
@@ -211,10 +212,10 @@ void Connection::handleFileRecv(std::string path) {
     });
 }
 
-void Connection::sendFile(std::shared_ptr<std::ifstream> ifs, std::shared_ptr<std::unordered_map<std::string, int>> diffs) {
+void Connection::sendFile(std::shared_ptr<std::ifstream> ifs, std::shared_ptr<std::map<std::string, int>> diffs) {
     try {
         if (!ifs->eof()) {
-            debug_cout("sendFile: invio chunk");
+            debug_cout(">Send file chunk");
             std::vector<char> buffer(CHUNK_SIZE);
             ifs->read(buffer.data(), buffer.size());
             size_t size = ifs->gcount();
@@ -226,7 +227,7 @@ void Connection::sendFile(std::shared_ptr<std::ifstream> ifs, std::shared_ptr<st
                     self->sendFile(ifs, diffs);
             });
         } else {
-            debug_cout("sendFile: fine file");
+            debug_cout(">>>Fine send file<<<");
             bufferMessage = Message(FILE_END);
             async_write(bufferMessage, [self = shared_from_this(), diffs](boost::system::error_code error, std::size_t bytes_transferred) {
                 if (!error)

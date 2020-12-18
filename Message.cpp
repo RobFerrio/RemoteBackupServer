@@ -19,7 +19,7 @@ Message::Message(int type, std::string data): type(type), data(std::vector<char>
 }
 
 //Costruttore per mappa <file/directory, hash>
-Message::Message(const std::unordered_map<std::string, std::string>& fileList) {
+Message::Message(const std::map<std::string, std::string>& fileList) {
     this->type = FILE_LIST;
     std::string tmp;
 
@@ -96,11 +96,11 @@ std::optional<std::pair<std::string, std::string>> Message::extractAuthData() {
     return std::pair(username, password);
 }
 
-std::optional<std::unordered_map<std::string, std::string>> Message::extractFileList() {
+std::optional<std::map<std::string, std::string>> Message::extractFileList() {
     if(this->type != FILE_LIST)
-        return std::optional< std::unordered_map<std::string, std::string> >();
+        return std::optional< std::map<std::string, std::string> >();
 
-    std::unordered_map<std::string, std::string> decodedFileList;
+    std::map<std::string, std::string> decodedFileList;
     std::string codedFileList(this->data.begin(), this->data.end());
 
     size_t pos;

@@ -47,12 +47,12 @@ Folder::Folder(std::string path): folderPath(std::move(path)) {
     }
 }
 
-std::unordered_map<std::string, std::string> Folder::getPaths() const {
+std::map<std::string, std::string>& Folder::getPaths() {
     return paths;
 }
 
-std::unordered_map<std::string, int> Folder::compare(const std::unordered_map<std::string, std::string>& clientFolder) {
-    std::unordered_map<std::string, int> diffs;
+std::map<std::string, int> Folder::compare(const std::map<std::string, std::string>& clientFolder) {
+    std::map<std::string, int> diffs;
     //Check file/directory mancanti al client
     for(std::pair<std::string, std::string> path : paths){
         if(!clientFolder.contains(path.first)){
