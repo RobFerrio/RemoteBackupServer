@@ -128,6 +128,8 @@ void Connection::listenMessages() {
                     case DIR_SEND:
                         if (self->bufferMessage.checkHash() == 1) {
                             try {
+                                debug_cout("Creazione cartella");
+                                debug_cout(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
                                 std::filesystem::create_directory(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
                                 self->listenMessages();
                             } catch (std::exception &e) {
