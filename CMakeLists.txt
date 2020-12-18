@@ -11,7 +11,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux OR CMAKE_SYSTEM_NAME STREQUAL Darwin)
 endif ()
 
 # see https://cmake.org/cmake/help/latest/module/FindBoost.html
-find_package(Boost 1.74.0 REQUIRED COMPONENTS filesystem serialization)
+find_package(Boost 1.6.0 REQUIRED COMPONENTS filesystem serialization)
 include_directories(${Boost_INCLUDE_DIR})
 
 # Note: a target should be already defined using 'add_executable' or 'add_library'
