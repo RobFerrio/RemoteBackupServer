@@ -159,6 +159,30 @@ void Connection::listenMessages() {
                             }
                         }
                         break;
+                    case FILE_DEL:
+                        if (self->bufferMessage.checkHash() == 1) {
+                            try{
+                                debug_cout("Cancellazione file");
+                                debug_cout(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
+                                std::filesystem::remove(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
+                                self->listenMessages();
+                            } catch (std::exception &e) {
+                                safe_cout(e.what());
+                            }
+                        }
+                        break;
+                    case DIR_DEL:
+                        if (self->bufferMessage.checkHash() == 1) {
+                            try{
+                                debug_cout("Cancellazione cartella");
+                                debug_cout(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
+                                std::filesystem::remove_all(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
+                                self->listenMessages();
+                            } catch (std::exception &e) {
+                                safe_cout(e.what());
+                            }
+                        }
+                        break;
                 }
             }catch(std::exception& e){
                 safe_cout(e.what());
