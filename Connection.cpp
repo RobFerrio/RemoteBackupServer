@@ -143,7 +143,7 @@ void Connection::listenMessages() {
                         if (self->bufferMessage.checkHash() == 1) {
                             std::string path(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end());
                             debug_cout(path);
-                            std::ofstream ofs(path, std::ios::binary | std::ios_base::app);     //Crea il file prima di cominciare
+                            std::ofstream ofs(path, std::ios::binary | std::ios_base::trunc);     //Crea il file o azzeralo prima di cominciare
                             self->handleFileRecv(std::move(path));
                         }
                         break;
