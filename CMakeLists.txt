@@ -16,7 +16,7 @@ include_directories(${Boost_INCLUDE_DIR})
 
 # Note: a target should be already defined using 'add_executable' or 'add_library'
 if(CMAKE_SYSTEM_NAME STREQUAL Linux OR CMAKE_SYSTEM_NAME STREQUAL Darwin)
-    target_link_libraries(RemoteBackupServer PRIVATE Threads::Threads ${Boost_LIBRARIES} crypto)
+    target_link_libraries(RemoteBackupServer PRIVATE Threads::Threads ${Boost_LIBRARIES} crypto ssl)
 else()
-    target_link_libraries(RemoteBackupServer ${Boost_LIBRARIES} crypto)
+    target_link_libraries(RemoteBackupServer ${Boost_LIBRARIES} crypto ssl)
 endif()

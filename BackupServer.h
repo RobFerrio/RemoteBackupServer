@@ -9,8 +9,9 @@
 
 class BackupServer {
     io_context& ioContext;
+    ssl_context sslContext;
     tcp::acceptor acceptor;
-    std::optional<boost::asio::ip::tcp::socket> connSocket;
+    std::optional<tcp::socket> connSocket;
 
 public:
     BackupServer(io_context& ioContext, std::uint16_t port);

@@ -83,6 +83,13 @@ void Connection::async_read(Handler handler) {
     });
 }
 
+void Connection::doHandshake() {
+    socket.async_handshake(boost::asio::ssl::stream_base::server, [self = shared_from_this()](const boost::system::error_code& error){
+        if(!error)
+            self->handleConnection();
+    });
+}
+
 void Connection::handleConnection() {
     //Invia richiesta autenticazione
     bufferMessage = Message(AUTH_REQ);

@@ -6,6 +6,7 @@
 #define REMOTEBACKUPSERVER_CONNECTION_H
 
 #include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
 #include <iostream>
 #include "Message.h"
 #include "Folder.h"
@@ -14,6 +15,7 @@
 #define CHUNK_SIZE 1024
 
 using io_context = boost::asio::io_context;
+using ssl_context = boost::asio::ssl::context;
 using tcp = boost::asio::ip::tcp;
 
 class Connection: public std::enable_shared_from_this<Connection>{
@@ -21,7 +23,8 @@ class Connection: public std::enable_shared_from_this<Connection>{
     static std::unordered_map<std::string, std::pair<std::string, bool>> users;
 
     io_context& ioContext;
-    tcp::socket socket;
+    ssl_context& sslContext;
+    boost::asio::ssl::stream<tcp::socket> socket;
     std::string username;
     Folder folder;
 
@@ -32,7 +35,7 @@ class Connection: public std::enable_shared_from_this<Connection>{
 
     Message bufferMessage;
 public:
-    Connection(io_context& ioContext, tcp::socket&& socket): ioContext(ioContext), socket(std::move(socket)){
+    Connection(io_context& ioContext, ssl_context& sslContext, tcp::socket&& socket): ioContext(ioContext), sslContext(sslContext), socket(std::move(socket), sslContext){
         debug_cout("Connessione creata");
     };
     ~Connection(){
@@ -49,6 +52,7 @@ public:
     template <typename Handler>
     void async_read(Handler handler);   //Il risultato può essere solo di tipo Message (viene salvato in bufferMessage)
 
+    void doHandshake();
     void handleConnection();
     bool login(std::optional<std::pair<std::string, std::string>>& authData);
     void listenMessages();
