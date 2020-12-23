@@ -58,7 +58,7 @@ public:
     void listenMessages();
     void handleFileList();
     void handleDiffs(std::shared_ptr<std::map<std::string, int>> diffs);
-    void handleFileRecv(std::string path);
+    void handleFileRecv(std::shared_ptr<std::string> pathPtr);
     void sendFile(std::shared_ptr<std::ifstream> ifs, std::shared_ptr<std::map<std::string, int>> diffs);
 };
 

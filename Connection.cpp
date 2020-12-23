@@ -151,43 +151,31 @@ void Connection::listenMessages() {
                             std::string path(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end());
                             debug_cout(path);
                             std::ofstream ofs(path, std::ios::binary | std::ios_base::trunc);     //Crea il file o azzeralo prima di cominciare
-                            self->handleFileRecv(std::move(path));
+                            self->handleFileRecv(std::make_shared<std::string>(std::move(path)));
                         }
                         break;
                     case DIR_SEND:
                         if (self->bufferMessage.checkHash() == 1) {
-                            try {
-                                debug_cout("Creazione cartella");
-                                debug_cout(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
-                                std::filesystem::create_directory(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
-                                self->listenMessages();
-                            } catch (std::exception &e) {
-                                safe_cout(e.what());
-                            }
+                            debug_cout("Creazione cartella");
+                            debug_cout(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
+                            std::filesystem::create_directory(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
+                            self->listenMessages();
                         }
                         break;
                     case FILE_DEL:
                         if (self->bufferMessage.checkHash() == 1) {
-                            try{
-                                debug_cout("Cancellazione file");
-                                debug_cout(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
-                                std::filesystem::remove(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
-                                self->listenMessages();
-                            } catch (std::exception &e) {
-                                safe_cout(e.what());
-                            }
+                            debug_cout("Cancellazione file");
+                            debug_cout(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
+                            std::filesystem::remove(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
+                            self->listenMessages();
                         }
                         break;
                     case DIR_DEL:
                         if (self->bufferMessage.checkHash() == 1) {
-                            try{
-                                debug_cout("Cancellazione cartella");
-                                debug_cout(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
-                                std::filesystem::remove_all(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
-                                self->listenMessages();
-                            } catch (std::exception &e) {
-                                safe_cout(e.what());
-                            }
+                            debug_cout("Cancellazione cartella");
+                            debug_cout(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
+                            std::filesystem::remove_all(std::string(self->bufferMessage.getData().begin(), self->bufferMessage.getData().end()));
+                            self->listenMessages();
                         }
                         break;
                 }
@@ -242,9 +230,9 @@ void Connection::handleDiffs(std::shared_ptr<std::map<std::string, int>> diffs) 
     }
 }
 
-void Connection::handleFileRecv(std::string path) {
+void Connection::handleFileRecv(std::shared_ptr<std::string> pathPtr) {
     bufferMessage = Message();
-    async_read([self = shared_from_this(), pathPtr = std::make_shared<std::string>(std::move(path))](boost::system::error_code error, std::size_t bytes_transferred){
+    async_read([self = shared_from_this(), pathPtr](boost::system::error_code error, std::size_t bytes_transferred){
         try {
             if (!error) {
                 if (self->bufferMessage.getType() == FILE_END) {
@@ -258,7 +246,7 @@ void Connection::handleFileRecv(std::string path) {
                     std::ofstream ofs(pathPtr->data(), std::ios::binary | std::ios_base::app);
                     if (ofs.is_open()) {
                         ofs.write(self->bufferMessage.getData().data(), self->bufferMessage.getData().size());
-                        self->handleFileRecv(*pathPtr);
+                        self->handleFileRecv(pathPtr);
                     }
                 }
             }

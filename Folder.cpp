@@ -41,9 +41,10 @@ Folder::Folder(std::string path): folderPath(std::move(path)) {
         std::filesystem::create_directory(folderPath);  //Crea la cartella se non esiste
 
     for(auto &file : std::filesystem::recursive_directory_iterator(folderPath)) {
-        paths[file.path().string()] = {};  //Path è una directory
         if(file.is_regular_file())
-            paths[file.path().string()] = fileHash(file.path().string()); //Path è un file
+            paths[file.path().string()] = fileHash(file.path().string());   //Path è un file
+        else
+            paths[file.path().string()] = {};                               //Path è una directory
     }
 }
 
@@ -53,6 +54,7 @@ std::map<std::string, std::string>& Folder::getPaths() {
 
 std::map<std::string, int> Folder::compare(const std::map<std::string, std::string>& clientFolder) {
     std::map<std::string, int> diffs;
+
     //Check file/directory mancanti al client
     for(std::pair<std::string, std::string> path : paths){
         if(!clientFolder.contains(path.first)){
