@@ -12,12 +12,12 @@ constexpr bool debug = true;
 
 static std::mutex coutMutex;
 
-static void safe_cout(std::string msg){
+static void safe_cout(const std::string& msg){
     std::lock_guard<std::mutex> lg(coutMutex);
     std::cout << msg << std::endl;
 }
 
-static void debug_cout(std::string msg){
+static void debug_cout(const std::string& msg){
     if(debug) {
         std::lock_guard<std::mutex> lg(coutMutex);
         std::cout << msg << std::endl;
