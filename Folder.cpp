@@ -8,32 +8,41 @@
 #include <filesystem>
 #include <openssl/sha.h>
 #include "Folder.h"
+#include "Message.h"
 
 #define CHUNK_SIZE 1024
 
 std::string fileHash(const std::string& file){
-    unsigned char hash[SHA256_DIGEST_LENGTH];
+    int success;
+    unsigned char tmp[SHA256_DIGEST_LENGTH];
     SHA256_CTX sha256;
     std::ifstream ifs;
     std::vector<char> buffer(CHUNK_SIZE);
 
+    //Lettura + hash chunk file
     ifs.open(file, std::ios::binary);
     while(!ifs.eof()) {
         ifs.read(buffer.data(), CHUNK_SIZE);
-        size_t size = ifs.gcount();
-        SHA256_Init(&sha256);
-        SHA256_Update(&sha256, buffer.data(), size);
+        size_t size= ifs.gcount();
+        success = SHA256_Init(&sha256);
+        if(!success) break;
+        success = SHA256_Update(&sha256, buffer.data(), size);
+        if(!success) break;
     }
-    SHA256_Final(hash, &sha256);
+
     ifs.close();
 
-    //Conversione da unsigned char a string
-    char hash_[2*SHA256_DIGEST_LENGTH+1];
-    hash_[2*SHA256_DIGEST_LENGTH] = 0;
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
-        sprintf(hash_+i*2, "%02x", hash[i]);
+    if(!success) {
+        return "";
+    }
 
-    return std::string(hash_);
+    success = SHA256_Final(tmp, &sha256);
+
+    if(!success) {
+        return "";
+    }
+
+    return Message::unsignedCharToHEX(tmp, SHA256_DIGEST_LENGTH);
 }
 
 Folder::Folder(std::string path): folderPath(std::move(path)) {

@@ -11,8 +11,10 @@
 #include "Message.h"
 #include "Folder.h"
 
-#define HEADER_LENGTH 8
-#define CHUNK_SIZE 1024
+#define HEADER_LENGTH   8
+#define CHUNK_SIZE      1024
+#define ITERATIONS      10007
+#define KEY_LENGTH      64
 
 using io_context = boost::asio::io_context;
 using ssl_context = boost::asio::ssl::context;
@@ -20,7 +22,7 @@ using tcp = boost::asio::ip::tcp;
 
 class Connection: public std::enable_shared_from_this<Connection>{
     static std::mutex usersMutex;
-    static std::unordered_map<std::string, std::pair<std::string, bool>> users;
+    static std::unordered_map<std::string, std::tuple<std::string, std::string, bool>> users;
 
     io_context& ioContext;
     ssl_context& sslContext;
@@ -41,7 +43,7 @@ public:
     ~Connection(){
         if(!username.empty()) {
             std::lock_guard<std::mutex> lg(usersMutex);
-            users[username].second = false;
+            std::get<2>(users[username]) = false;
         }
         debug_cout("Connessione distrutta");
     };

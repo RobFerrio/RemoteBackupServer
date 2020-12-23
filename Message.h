@@ -7,6 +7,8 @@
 
 #include <vector>
 #include <openssl/sha.h>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
@@ -38,6 +40,9 @@ class Message {
     std::string hash;
 
     void hashData();
+    //Conversione da unsigned char* a string
+    static unsigned char* HEXtoUnsignedChar(const std::string& src);                //Conversione da string ad unsigned char*
+    static unsigned char *generate_salt(int salt_length);                           //Produzione sale crittografico
 
     template<class Archive>
     void serialize(Archive& ar, const unsigned int version){
@@ -60,6 +65,9 @@ public:
     [[nodiscard]] int checkHash() const;
     std::optional<std::pair<std::string, std::string>> extractAuthData();
     std::optional<std::map<std::string, std::string>> extractFileList();
+
+    static std::string compute_password(const std::string& password, const std::string& salt, int iterations, int dkey_lenght); //PBKDF2
+    static std::string unsignedCharToHEX(unsigned char *src, size_t src_length);
 };
 
 

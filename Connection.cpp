@@ -7,14 +7,35 @@
 #include "Connection.h"
 
 std::mutex Connection::usersMutex;
-std::unordered_map<std::string, std::pair<std::string, bool>> Connection::users = {
-        {"gold"     ,   {"experience"   ,false}},
-        {"sticky"   ,   {"fingers"      ,false}},
-        {"moody"    ,   {"blues"        ,false}},
-        {"killer"   ,   {"queen"        ,false}},
-        {"white"    ,   {"album"        ,false}},
-        {"purple"   ,   {"haze"         ,false}},
-        {"green"    ,   {"day"          ,false}}
+std::unordered_map<std::string, std::tuple<std::string, std::string, bool>> Connection::users = {
+        {"gold"     ,   {//"experience"   ,
+                                "1bbb95740e28c2db088249a8bc27e4021921e00458f9e0c2e63bc6723374629dc6b641e8c2a8378c4999fc02a840c790e77f35d4875499dd968c2f913486fa27",
+                                "a945ae55032d5e5840aa9ea59d85cc6f1ea1e56c76193c6de8cd006c9eb6ab964d7470710c9670de37a05e3fd31bdde070d181a8bf2a79408aebd522acee3ca3",
+                                false}},
+        {"sticky"   ,   {//"fingers"      ,
+                                "6b4ca16370766a73d2b459caaa00f6bfec1e2fda3ca12700ee303788a15e5940a397528e911feb434e9773922dcebdbbfc3a54891e67966c6e0ad201cbd1a6f2",
+                                "2053433695518814fe5d89338d2a29dba6cfebd52d515325985973227cd91ba0b07c519cb958af5605561674760b9177d773a571e21ce936fde7bccf653c6f85",
+                                false}},
+        {"moody"    ,   {//"blues"        ,
+                                "60152acac4b02bce7cc824d5db743074ef6e798aeae5c0a197f02199b90764008bf19aac9a51585bc565ed39dd0d907ed19fcab5248c1d955efb2410d7fc44dd",
+                                "cb0119df416abc93a400f88fb2ad4e397749ca75671acd1a143acdfb30827ceef7749c495514545525db8075cc10d68b7ea64af52acab4f000a453e8b1e5c07e",
+                                false}},
+        {"killer"   ,   {//"queen"        ,
+                                "dbc8f167f84938aa6954c79f9d264ea672623b0f44da311527447b183b21e430a80aa44eb3ffb7364f9f9508d48e53599d8978c3c6430e2a8cc8001025b4b2cc",
+                                "5b6d81004e48192e887fac53369fe3e0b81a931c78b276b44667350b8be334dedb2311dc255124a8fe908a244f59b5528cde6d40493b524a20081678a448308b",
+                                false}},
+        {"white"    ,   {//"album"        ,
+                                "0c5bebf87d6a583f0e79a31dc9338b49d8c4d61f5c7ca539931ff375f82d451f335c4d0af0dcaef84cc7b179c23d7a44e8df11b45bec4572f7663df55f4702aa",
+                                "4beb8f09736de327fa82fd90c4063cd2083df8bc40f68e38c814fcaf8b5bc23b009acbc5690de5ee732ae6808f51d22e6249aeaaa39434d2645903af8d020dfe",
+                                false}},
+        {"purple"   ,   {//"haze"         ,
+                                "60bd6d5bc1ed8fb68d72fb54d51c600914a8c6615c4c920c83dc1746c2ba519a716abf2aad1b83ec220d8190335466f4c3b1c65ffaad1c2c17c99621db8ad073",
+                                "96e1221f5dafeee9efd58b495534c442fe884b7e8321c1bcad5d23bdea1925d97da87fa7ed6a7637ee74465bad2d63293db2e70eb1acdf5e6432c4afd806d2c1",
+                                false}},
+        {"green"    ,   {//"day"          ,
+                                "89ce878a69e325c0e0fbedd3af967ef89a87a113d7859706125d7911a041fe2201c48c312998e73261443d1b188679e3f6bb6b0bc1fc44567c83d4a53d7c86f1",
+                                "668b65a97768263b00877c8dfc93ff7d9d88beeeb6cd5f90bd77123b05e40657fc1fb45cfe0ea8ac382e1949b84fec8756cbdee2954e6d4fbd4f0c6a273b219b",
+                                false}}
 };
 
 template<typename T, typename Handler>
@@ -131,11 +152,15 @@ bool Connection::login(std::optional<std::pair<std::string, std::string>>& authD
     std::lock_guard<std::mutex> lg(usersMutex);
     if(!users.contains(authData->first))
         return false;
-    if(users[authData->first].second || users[authData->first].first != authData->second)
+
+    auto salt = std::get<0>(users[authData->first]);
+    auto recomputedPassword = Message::compute_password(authData->second, salt, ITERATIONS, KEY_LENGTH);
+
+    if(std::get<2>(users[authData->first]) || recomputedPassword != std::get<1>(users[authData->first]))
         return false;
 
     username = authData->first;
-    users[username].second = true;
+    std::get<2>(users[username]) = true;
     return true;
 }
 
@@ -249,6 +274,9 @@ void Connection::handleFileRecv(std::shared_ptr<std::string> pathPtr) {
                         self->handleFileRecv(pathPtr);
                     }
                 }
+            } else {
+                debug_cout(">>>errore ricezione file<<<");
+                std::remove(pathPtr->data());
             }
         } catch (std::exception& e) {
             safe_cout(e.what());
