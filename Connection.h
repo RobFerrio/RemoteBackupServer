@@ -25,7 +25,6 @@ class Connection: public std::enable_shared_from_this<Connection>{
     static std::unordered_map<std::string, std::tuple<std::string, std::string, bool>> users;
 
     io_context& ioContext;
-    ssl_context& sslContext;
     boost::asio::ssl::stream<tcp::socket> socket;
     std::string username;
     Folder folder;
@@ -37,7 +36,7 @@ class Connection: public std::enable_shared_from_this<Connection>{
 
     Message bufferMessage;
 public:
-    Connection(io_context& ioContext, ssl_context& sslContext, tcp::socket&& socket): ioContext(ioContext), sslContext(sslContext), socket(std::move(socket), sslContext){
+    Connection(io_context& ioContext, ssl_context& sslContext, tcp::socket&& socket): ioContext(ioContext), socket(std::move(socket), sslContext){
         debug_cout("Connessione creata");
     };
     ~Connection(){

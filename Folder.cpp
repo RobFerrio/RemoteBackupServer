@@ -10,31 +10,37 @@
 #include "Folder.h"
 #include "Message.h"
 
-#define CHUNK_SIZE 1024
+#define HASH_CHUNK_SIZE 1024
 
 std::string fileHash(const std::string& file){
     int success;
     unsigned char tmp[SHA256_DIGEST_LENGTH];
     SHA256_CTX sha256;
     std::ifstream ifs;
-    std::vector<char> buffer(CHUNK_SIZE);
+    std::vector<char> buffer(HASH_CHUNK_SIZE);
+
+    success = SHA256_Init(&sha256);
+
+    if(!success) return "";
 
     //Lettura + hash chunk file
     ifs.open(file, std::ios::binary);
     while(!ifs.eof()) {
-        ifs.read(buffer.data(), CHUNK_SIZE);
+        if(!std::filesystem::exists(file)) {
+            success = 0;
+            break;
+        }
+        ifs.read(buffer.data(), HASH_CHUNK_SIZE);
         size_t size= ifs.gcount();
-        success = SHA256_Init(&sha256);
-        if(!success) break;
         success = SHA256_Update(&sha256, buffer.data(), size);
         if(!success) break;
     }
 
-    ifs.close();
-
     if(!success) {
         return "";
     }
+
+    ifs.close();
 
     success = SHA256_Final(tmp, &sha256);
 
